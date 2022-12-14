@@ -1,41 +1,77 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 
-class ChatScreen extends StatelessWidget {
-  const ChatScreen({Key? key}) : super(key: key);
+import '../widgets/Auth/chat/messages.dart';
+import '../widgets/Auth/chat/new_message.dart';
+
+class ChatScreen extends StatefulWidget {
+  @override
+  _ChatScreenState createState() => _ChatScreenState();
+}
+
+class _ChatScreenState extends State<ChatScreen> {
+  @override
+  void initState() {
+    super.initState();
+    final fbm = FirebaseMessaging.instance;
+    fbm.requestPermission();
+    FirebaseMessaging.onMessage.listen((message) {
+      print(message);
+      return;
+    });
+    FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      print(message);
+      return;
+    });
+    fbm.subscribeToTopic('chat');
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: StreamBuilder(
-          stream: FirebaseFirestore.instance
-              .collection('chats/7nJDovzeahz8ex9n3zqI/messages')
-              .snapshots(),
-          builder: (context, AsyncSnapshot<QuerySnapshot> streamsnapshot) {
-            if (streamsnapshot.connectionState == ConnectionState.waiting) {
-              return Center(
-                child: CircularProgressIndicator(),
-              );
-            }
-            final documents = streamsnapshot.data!.docs;
-            return ListView.builder(
-              itemCount: documents.length,
-              itemBuilder: (context, index) => Container(
-                padding: EdgeInsets.all(8),
-                child: Text(documents[index]['text']),
+      appBar: AppBar(
+        title: Text('FlutterChat'),
+        actions: [
+          DropdownButton(
+            underline: Container(),
+            icon: Icon(
+              Icons.more_vert,
+              color: Theme.of(context).primaryIconTheme.color,
+            ),
+            items: [
+              DropdownMenuItem(
+                child: Container(
+                  child: Row(
+                    children: <Widget>[
+                      Icon(Icons.exit_to_app),
+                      SizedBox(width: 8),
+                      Text('Logout'),
+                    ],
+                  ),
+                ),
+                value: 'logout',
               ),
-            );
-          }),
-
-
-      floatingActionButton: FloatingActionButton(
-      child: Icon(Icons.add),
-        onPressed: () {
-
-
-
-          },),
-
+            ],
+            onChanged: (itemIdentifier) {
+              if (itemIdentifier == 'logout') {
+                FirebaseAuth.instance.signOut();
+              }
+            },
+          ),
+        ],
+      ),
+      body: Container(
+        child: Column(
+          children: <Widget>[
+            Expanded(
+              child: Messages(),
+            ),
+            NewMessage(),
+          ],
+        ),
+      ),
     );
   }
 }
